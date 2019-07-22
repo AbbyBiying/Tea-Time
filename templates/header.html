@@ -12,6 +12,10 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-light bg-light">
       <a class="navbar-brand" href="{{ url_for('index')}}">Home Page</a>
+      <a class="nav-item nav-link" href="{{ url_for('add_tea') }}">Adding Tea</a>
+      <a class="nav-item nav-link" href="{{ url_for('signup_form') }}">SignUp</a>
+      <a class="nav-item nav-link" href="{{ url_for('list_user') }}">List of Users</a>
+      <a class="nav-item nav-link" href="{{ url_for('list_tea') }}">List of Tea</a>
     </nav>
     {% block content %}
     {% endblock %}

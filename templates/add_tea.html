@@ -1,0 +1,17 @@
+{% extends "header.html"%}
+{% block content %}
+<div class="jumbotron">
+  <p>Add a new type of tea below:</p>
+
+  <form method="POST">
+      {# This hidden_tag is a CSRF security feature. #}
+      {{ form.hidden_tag() }}
+      <br>
+      {{ form.temperature.label}} {{form.temperature}}
+      <br>
+      {{form.tea_choice.label}}{{form.tea_choice}}
+      <br>
+      {{ form.submit() }}
+  </form>
+</div>
+{% endblock %}

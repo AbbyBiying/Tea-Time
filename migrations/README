@@ -1,0 +1,14 @@
+# Tea Time
+
+## This is a Flask app for tea time with news.
+ 
+## Implementation
+###Rendering is done on the server side with Jinja2 template engine 
+###installing Python: https://www.python.org/downloads/
+
+###installing Flask: https://flask.palletsprojects.com/en/1.1.x/installation/
+
+## Running locally
+ 
+visit http://localhost:5000/
+  

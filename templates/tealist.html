@@ -1,0 +1,12 @@
+{% extends "header.html" %}
+{% block content %}
+<div class="jumbotron">
+  <h1>Here is a list of all tea.</h1>
+  <ul>
+    {% for t in tea  %}
+    <li>{{t}}</li>
+    {% endfor %}
+  </ul>
+
+</div>
+{% endblock %}

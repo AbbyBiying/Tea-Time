@@ -2,12 +2,12 @@
 {% block content %}
 <div class="jumbotron">
 
-  {# Recall that report is a boolean #}
   {% if report%}
-    <p>Your UserName passed the 3 requirements!</p>
+    <p>Congrats! Your UserName and Email pass all the requirements!</p>
   {% else %}
-    <p>Oh no! Looks like you had issues with your username!</p>
+    <p>Oh no! Looks like you had issues with your username or email!</p>
     <p>Here are the requirements you failed:</p>
+
     <ul>
       {% if not lower_letter %}
       <li>You did not use a lowercase character.</li>
@@ -18,8 +18,11 @@
       {% if not num_end %}
       <li>You did not end your username with a number.</li>
       {% endif %}
-
+      {% if not validatedemail %}
+      <li>You did not use an validated email.</li>  
+      {% endif %}
     </ul>
   {% endif %}
+
 </div>
 {% endblock %}

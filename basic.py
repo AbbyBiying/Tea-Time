@@ -1,30 +1,38 @@
 import os
+from forms import InfoForm, AddTeaForm
+
 from flask import Flask, request, render_template, flash, session, redirect, url_for, session
-from flask_wtf import FlaskForm
-from wtforms import (StringField, BooleanField, DateTimeField,
-                     RadioField,SelectField,TextField,
-                     TextAreaField,SubmitField)
+
 from wtforms.validators import DataRequired
-from bs4 import BeautifulSoup
 import shutil
 import requests
-import csv
 from datetime import datetime
-import re
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from validate_email import validate_email
+import csv
+import re
+from bs4 import BeautifulSoup
+
 
 # This grabs our directory
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
+# Key for Forms
+app.config['SECRET_KEY'] = 'mysecretkey'
+
 # Connects our Flask App to our Database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'data.sqlite')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # create sqlite db 
 db = SQLAlchemy(app)
+# Add on migration capabilities in order to run terminal commands
+Migrate(app,db)
 
+###################################
+# MODELS
 # it inherit from db.Model class
 class User(db.Model):
 
@@ -32,12 +40,16 @@ class User(db.Model):
     __tablename__ = 'User'
 
     ## CREATE THE COLUMNS FOR THE TABLE 
-    # Primary Key column, unique id for each puppy
+    # Primary Key column, unique id for each user
     id = db.Column(db.Integer,primary_key=True)
     # Username
     username = db.Column(db.Text)
     # User email
     email = db.Column(db.Text)
+
+    # This is a one-to-one relationship
+    # A user can have only one fav type of tea
+    tea = db.relationship('Tea',backref='user',uselist=False)
 
     # This sets what an instance in this table  
     def __init__(self,username,email):
@@ -45,8 +57,47 @@ class User(db.Model):
         self.email = email
 
     def __repr__(self):
-        # This is the string representation of a puppy in the model
-        return f"User {self.username}'s email' is {self.email}."
+        if self.tea:
+            # This is the string representation of a user in the model
+            return f"User {self.username}'s email' is {self.email}, user ID:{self.id}, his/her fav tea is {self.tea.tea_choice}"
+        else:
+            return f"User {self.username}'s email' is {self.email}, user ID:{self.id}, no tea yet."
+   
+    def report_tea(self):
+        print("Here is my fav tea!")
+        print(self.tea)        
+        
+
+class Tea(db.Model):
+
+    # The default table name will be the class name
+    __tablename__ = 'Tea'
+
+    ## CREATE THE COLUMNS FOR THE TABLE 
+    # Primary Key column, unique id for each user
+    id = db.Column(db.Integer,primary_key=True)
+    # Username
+    temperature = db.Column(db.Text)
+    # User email
+    tea_choice = db.Column(db.Text)
+
+    # Connect the tea to the user that owns it.
+    user_id = db.Column(db.Integer,db.ForeignKey('User.id'))
+
+    # This sets what an instance in this table  
+    def __init__(self,temperature,tea_choice,user_id):
+        self.temperature = temperature
+        self.tea_choice = tea_choice
+        self.user_id = user_id
+
+    def __repr__(self):
+        # This is the string representation of a tea in the model
+        if self.user_id:
+            return f"Tea {self.tea_choice}'s temperature is {self.temperature}, ID:{self.id}, user is {self.user_id}"
+        else:
+            return f"Tea {self.tea_choice}'s temperature is {self.temperature}, ID:{self.id}, no users yet"
+
+
 
 proxies = {'http' : 'http://10.10.0.0:0000',  
           'https': 'http://120.10.0.0:0000'}
@@ -64,6 +115,7 @@ page_response = requests.get(url, timeout=5, headers=headers)
 
 # website scraping
 titles_list = []
+
 
 def scraper():
     try:
@@ -96,36 +148,55 @@ def scraper():
 
 scraper()
 
-# create a WTForm Class 
-class InfoForm(FlaskForm):    
-    drink_tea  = BooleanField("Do you drink tea?")
-    temperature = RadioField('Hot tea/iced tea:', choices=[('hot','Hot Tea'),('iced','Iced Tea')])
-    tea_choice = SelectField(u'Pick Your Favorite Tea:',
-                          choices=[('Black', 'Black tea'), ('Green', 'Green tea'),
-                                   ('Oolong', 'Oolong tea'),('Pu-erh','Pu-erh tea'),
-                                   ('Masala_chai', 'Masala chai'),('Cold', 'Cold brew tea')])
-    feedback = TextAreaField()
-    submit = SubmitField('Submit')
-
 
 @app.route('/tea_form', methods=['GET', 'POST'])
-def home():
+def tea():
     # Create instance of the form.
     form = InfoForm()
     
     # Grab the data from the breed on the form.
     if form.validate_on_submit():     
-        session['drink_tea'] = form.drink_tea.data
         session['temperature'] = form.temperature.data
         session['tea_choice'] = form.tea_choice.data
-        session['feedback'] = form.feedback.data
 
         flash(f"You just changed your tea_choice to: {session['tea_choice']}")
 
         return redirect(url_for("thankyou"))
 
-    return render_template('home.html', form=form)
+    return render_template('tea.html', form=form)
 
+@app.route('/add_tea', methods=['GET', 'POST'])
+def add_tea():
+    # Create instance of the form.
+    form = AddTeaForm()
+    
+    # Grab the data from the breed on the form.
+    if form.validate_on_submit():     
+        temperature = form.temperature.data
+        tea_choice = form.tea_choice.data
+        user_id = User.query.first().id
+        
+        # Add new tea to DB
+        new_tea = Tea(temperature,tea_choice,user_id)
+        db.session.add(new_tea)
+        db.session.commit()
+
+
+        return redirect(url_for("list_tea"))
+
+    return render_template('add_tea.html', form=form)
+
+@app.route('/userslist')
+def list_user():
+    # Grab a list of users from database.
+    users = User.query.all()
+    return render_template('userslist.html', users=users)
+
+@app.route('/tealist')
+def list_tea():
+    # Grab a list of tea from database.
+    tea = Tea.query.all()
+    return render_template('tealist.html', tea=tea)
 
 @app.route('/')
 def index():
@@ -153,22 +224,33 @@ def users():
 @app.route('/report')
 def report():    
     username = request.args.get('username')
+    email = request.args.get('email')
 
     lower_letter = False
     upper_letter = False
     num_end = False
+    validatedemail = False
 
-    if username and email:
+    if (username and email):
       lower_letter = any(letter.islower() for letter in username)
       upper_letter = any(letter.isupper() for letter in username)
       num_end = username[-1].isdigit()
+      validatedemail = validate_email(email)
 
-      report = lower_letter and upper_letter and num_end
+      report = lower_letter and upper_letter and num_end and validatedemail
+      
+      if report:
+        # if user info is validated, pass it to DB
+        new_user = User(username, email)
+        db.session.add(new_user)
+        db.session.commit()
+
       return render_template('report.html',
         username=username,report=report,
         lower_letter=lower_letter,
         upper_letter=upper_letter,
-        num_end=num_end)
+        num_end=num_end,
+        validatedemail = validatedemail)
     else:
       return redirect(url_for('index'))
 
