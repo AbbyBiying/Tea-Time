@@ -1,0 +1,15 @@
+{% extends "header.html"%}
+{% block content %}
+
+<div class="jumbotron">
+  <h1>Welcome to Tea Time!</h1>
+  <p>Wanna <a href="{{url_for('signup_form')}}">sign up</a></p>
+  <h2>Today's News:</h2>  
+  {% for t in titles_list %}
+    <p>{{t}}<p>
+  {% endfor %}
+
+</div>
+<img src="../static/tea-time.png" width="600">
+
+{% endblock %}
