@@ -13,6 +13,7 @@ from validate_email import validate_email
 import csv
 import re
 from bs4 import BeautifulSoup
+from flask_restful import Api,Resource
 
 
 # This grabs our directory
@@ -30,6 +31,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 # Add on migration capabilities in order to run terminal commands
 Migrate(app,db)
+api = Api(app)
 
 ###################################
 # MODELS
@@ -55,6 +57,9 @@ class User(db.Model):
     def __init__(self,username,email):
         self.username = username
         self.email = email
+
+    def json(self):
+        return {'username': self.username, 'email': self.email }
 
     def __repr__(self):
         if self.tea:
@@ -89,6 +94,9 @@ class Tea(db.Model):
         self.temperature = temperature
         self.tea_choice = tea_choice
         self.user_id = user_id
+
+    def json(self):
+        return {'temperature': self.temperature, 'tea_choice': self.tea_choice, 'user_id': self.user_id,}
 
     def __repr__(self):
         # This is the string representation of a tea in the model
@@ -216,10 +224,6 @@ def thankyou():
 def cn(name):
     return render_template('chinese.html',name=name)
 
-@app.route('/users')
-def users():
-    userslist = ['ABBY','JOHN','BIYING','SU']
-    return render_template('users.html',userslist=userslist)
 
 @app.route('/report')
 def report():    
@@ -262,6 +266,31 @@ def user(name):
 def page_not_found(e):
     return render_template('404.html'),404
 
+class AllTea(Resource):
+
+    def get(self):
+        tea = Tea.query.all()
+
+        if tea:
+            # return json of teas
+            return [t.json() for t in tea]
+        else:
+            return {'tea_choice':'not found'}, 404
+
+
+class AllUsers(Resource):
+
+    def get(self):
+        users = User.query.all()
+
+        if users:
+            # return json of users
+            return [user.json() for user in users]
+        else:
+            return {'username':'not found'}, 404
+
+api.add_resource(AllTea,'/teas')
+api.add_resource(AllUsers,'/users')
 
 if __name__ == '__main__':
     app.run(debug=True)
